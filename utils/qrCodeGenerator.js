@@ -2,19 +2,19 @@ const QRCode = require('qrcode');
 const { encryptData } = require('./encryption');
 
 /**
- * Generate a QR code data URL for a coupon
- * @param {Object} couponData - The coupon data to encode in the QR code
+ * Generate a QR code data URL for a ticket
+ * @param {Object} ticketData - The ticket data to encode in the QR code
  * @returns {Promise<string>} - A promise that resolves to the QR code data URL
  */
-const generateCouponQRCode = async (couponData) => {
+const generateTicketQRCode = async (ticketData) => {
   try {
     // Extract only the necessary data for the QR code
     const qrPayload = {
-      couponCode: couponData.couponCode,
-      name: couponData.name,
-      companyName: couponData.companyName,
-      product: couponData.product,
-      expiryDate: couponData.expiryDate
+      ticketCode: ticketData.ticketCode,
+      name: ticketData.name,
+      companyName: ticketData.companyName,
+      product: ticketData.product,
+      expiryDate: ticketData.expiryDate
     };
 
     // Encrypt the payload before generating QR code
@@ -39,5 +39,5 @@ const generateCouponQRCode = async (couponData) => {
 };
 
 module.exports = {
-  generateCouponQRCode
+  generateTicketQRCode
 }; 

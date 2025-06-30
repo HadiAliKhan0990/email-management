@@ -3,7 +3,7 @@ const { decryptData } = require('./encryption');
 /**
  * Process and decrypt QR code data
  * @param {string} qrCodeData - The data scanned from the QR code
- * @returns {Object} - The decrypted coupon data
+ * @returns {Object} - The decrypted ticket data
  */
 const processQRCodeData = (qrCodeData) => {
   try {

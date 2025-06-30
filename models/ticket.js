@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Coupon = sequelize.define('Coupon', {
+const Ticket = sequelize.define('Ticket', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -15,29 +15,21 @@ const Coupon = sequelize.define('Coupon', {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    couponType: {
-        type: DataTypes.ENUM('percentageDiscount', 'fixedDiscount', 'other'),
-        allowNull: false,
-    },
-    product: {
+    ticketType: {
         type: DataTypes.STRING,
         allowNull: false,
-    },
-    description: {
-        type: DataTypes.TEXT,
-        allowNull: true,
     },
     totalAvailable: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
     },
-    claimedCount: {
+    totalTickets: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
     },
-    redeemedCount: {
+    ticketValue: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
@@ -45,24 +37,10 @@ const Coupon = sequelize.define('Coupon', {
     expiryDate: {
         type: DataTypes.DATE,
         allowNull: false,
-    },
-    couponCode: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-    },
-    status: {
-        type: DataTypes.ENUM('available', 'claimed', 'redeemed', 'expired'),
-        allowNull: false,
-        defaultValue: 'available',
-    },
-    isActive: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true,
-    },
+    }
 }, {
-    tableName: 'coupon',
+    tableName: 'ticket',
     timestamps: true,
 });
 
-module.exports = Coupon;
+module.exports = Ticket; 

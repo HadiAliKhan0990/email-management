@@ -1,4 +1,4 @@
-const couponRoutes = require('./couponRoutes');
+const ticketRoutes = require('./ticketRoutes');
 const express = require('express');
 const router = express.Router();
 
@@ -7,6 +7,6 @@ router.get('/test', (req, res) => {
   res.status(200).json({ message: 'API is working!' });
 });
 
-router.use('/coupon', couponRoutes);
+router.use('/ticket', ticketRoutes);
 
 module.exports = router;
