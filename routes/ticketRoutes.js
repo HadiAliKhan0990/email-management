@@ -12,20 +12,21 @@ const {
 } = require('../controllers/ticketController');
 
 const { ticketValidations } = require('../validations/ticket');
+const { verifyToken, requireAdmin } = require('../middlewares/authMiddleware');
 
-// Create ticket
-router.post('/', ticketValidations, createTicket);
+// Create ticket (admin only)
+router.post('/', verifyToken, requireAdmin, ticketValidations, createTicket);
 // Get all tickets
-router.get('/', getAllTickets);
+router.get('/', verifyToken, getAllTickets);
 // Get single ticket
-router.get('/:id', getTicket);
-// Update ticket
-router.put('/:id', ticketValidations, updateTicket);
-// Delete ticket
-router.delete('/:id', deleteTicket);
+router.get('/:id', verifyToken, getTicket);
+// Update ticket (admin only)
+router.put('/:id', verifyToken, requireAdmin, ticketValidations, updateTicket);
+// Delete ticket (admin only)
+router.delete('/:id', verifyToken, requireAdmin, deleteTicket);
 // Buy ticket
-router.post('/:id/buy', buyTicket);
+router.post('/:id/buy', verifyToken, buyTicket);
 // Get business statistics
-router.get('/business/:companyName/stats', getBusinessStats);
+router.get('/business/:companyName/stats', verifyToken, getBusinessStats);
 
 module.exports = router;

@@ -13,23 +13,29 @@ const createTicket = async (req, res) => {
   try {
     const {
       name,
-      companyName,
-      ticketType,
-      totalAvailable,
-      ticketValue,
-      expiryDate,
+      company_name,
+      ticket_type,
+      total_tickets,
+      total_available,
+      ticket_value,
+      expiry_date,
     } = req.body;
 
+    // Create the ticket without QR code first
     const newTicket = await Ticket.create({
       name,
-      companyName,
-      ticketType,
-      totalAvailable,
-      ticketValue,
-      expiryDate,
+      company_name,
+      ticket_type,
+      total_tickets,
+      total_available,
+      ticket_value,
+      expiry_date,
+      created_at: new Date(),
     });
 
+    // Generate QR code and update the ticket
     const qrCode = await generateTicketQRCode(newTicket);
+    await newTicket.update({ qr_code: qrCode });
 
     res.status(HTTP_STATUS_CODE.CREATED).json({
       message: 'Ticket created successfully',
@@ -52,8 +58,8 @@ const getAllTickets = async (req, res) => {
     let where = {};
     if (onlyAvailable) {
       where = {
-        totalAvailable: { [Op.gt]: 0 },
-        expiryDate: { [Op.gt]: new Date() },
+        total_available: { [Op.gt]: 0 },
+        expiry_date: { [Op.gt]: new Date() },
       };
     }
     const tickets = await Ticket.findAll({ where });
@@ -123,19 +129,22 @@ const deleteTicket = async (req, res) => {
   }
 };
 
-// BUY ticket (decrement totalAvailable)
+// BUY ticket (decrement total_available)
 const buyTicket = async (req, res) => {
   try {
     const ticket = await Ticket.findByPk(req.params.id);
     if (!ticket) {
       return res.status(HTTP_STATUS_CODE.NOT_FOUND).json({ message: 'Ticket not found' });
     }
-    if (ticket.totalAvailable <= 0) {
+    if (ticket.total_available <= 0) {
       return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({ message: 'No more tickets available to buy' });
     }
-    ticket.totalAvailable -= 1;
+    ticket.total_available -= 1;
+    // Optionally, regenerate QR code if you want to update it after purchase
+    // const qrCode = await generateTicketQRCode(ticket);
+    // await ticket.update({ total_available: ticket.total_available, qr_code: qrCode });
     await ticket.save();
-    const qrCode = await generateTicketQRCode(ticket);
+    const qrCode = ticket.qr_code || await generateTicketQRCode(ticket);
     res.status(HTTP_STATUS_CODE.OK).json({
       message: 'Ticket bought successfully',
       ticket: {
@@ -151,24 +160,22 @@ const buyTicket = async (req, res) => {
 
 const getBusinessStats = async (req, res) => {
   try {
-    const { companyName } = req.params;
-    // Get all tickets for this company
+    const { company_name } = req.params;
     const tickets = await Ticket.findAll({
-      where: { companyName },
-      attributes: ['ticketType', 'totalTickets', 'totalAvailable'],
+      where: { company_name },
+      attributes: ['ticket_type', 'total_tickets', 'total_available'],
       raw: true
     });
-    // Group by ticketType
     const statsMap = {};
     tickets.forEach(ticket => {
-      if (!statsMap[ticket.ticketType]) {
-        statsMap[ticket.ticketType] = { created: 0, used: 0 };
+      if (!statsMap[ticket.ticket_type]) {
+        statsMap[ticket.ticket_type] = { created: 0, used: 0 };
       }
-      statsMap[ticket.ticketType].created += ticket.totalTickets;
-      statsMap[ticket.ticketType].used += (ticket.totalTickets - ticket.totalAvailable);
+      statsMap[ticket.ticket_type].created += ticket.total_tickets;
+      statsMap[ticket.ticket_type].used += (ticket.total_tickets - ticket.total_available);
     });
-    const result = Object.entries(statsMap).map(([ticketType, { created, used }]) => ({
-      ticketType,
+    const result = Object.entries(statsMap).map(([ticket_type, { created, used }]) => ({
+      ticket_type,
       created,
       used
     }));
