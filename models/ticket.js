@@ -50,7 +50,7 @@ const Ticket = sequelize.define('Ticket', {
     type: DataTypes.DATE,
   },
 }, {
-  tableName: 'ticket',
+  tableName: 'Ticket',
   timestamps: false,
 });
 
