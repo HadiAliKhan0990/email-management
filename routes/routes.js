@@ -7,6 +7,6 @@ router.get('/test', (req, res) => {
   res.status(200).json({ message: 'API is working!' });
 });
 
-router.use('api/ticket', ticketRoutes);
+router.use('/ticket', ticketRoutes);
 
 module.exports = router;
