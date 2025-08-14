@@ -10,15 +10,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HadiAliKhan0990/reservation-service.git"
+    "url": "git+https://github.com/HadiAliKhan0990/tickets.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/HadiAliKhan0990/reservation-service/issues"
+    "url": "https://github.com/HadiAliKhan0990/tickets/issues"
   },
-  "homepage": "https://github.com/HadiAliKhan0990/reservation-service#readme",
+  "homepage": "https://github.com/HadiAliKhan0990/tickets",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "crypto": "^1.0.1",
