@@ -1,7 +1,7 @@
 {
-  "name": "reservation",
+  "name": "tickets",
   "version": "1.0.0",
-  "description": "Reservation service application",
+  "description": "Tickets service application",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
