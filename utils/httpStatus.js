@@ -9,4 +9,5 @@ exports.HTTP_STATUS_CODE = {
   METHOD_NOT_ALLOWED: 405,
   CONFLICT: 409,
   INTERNAL_SERVER: 500,
+  INTERNAL_SERVER_ERROR: 500, // Alias for consistency
 };
