@@ -19,11 +19,24 @@ const EmailCampaign = sequelize.define('EmailCampaign', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  send_type: {
+    type: DataTypes.ENUM('SINGLE', 'GROUP'),
+    allowNull: false,
+    defaultValue: 'GROUP',
+  },
   email_group_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'EmailGroup',
+      key: 'id'
+    }
+  },
+  recipient_email_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Email',
       key: 'id'
     }
   },

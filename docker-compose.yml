@@ -1,0 +1,60 @@
+services:
+  email-service:
+    build: .
+    container_name: email-service
+    restart: unless-stopped
+    env_file:
+      - .env  # Loads all variables from .env file into container
+    ports:
+      - "3006:3000"  # Email service on port 3006
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Note: Variables from .env are loaded via env_file above
+      # These explicit environment vars override or supplement .env values
+      # DB_HOST must be "db" (service name) for Docker Compose networking
+      # Force to 'db' regardless of .env value
+      - DB_HOST=db
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DIALECT=${DB_DIALECT:-postgres}
+      # JWT secret can be AUTH_KEY, JWT_SECRET, or JWT_SECRET_KEY (loaded from .env via env_file)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - REPLY_TO_EMAIL=${REPLY_TO_EMAIL}
+      - MAX_EMAILS_PER_HOUR=${MAX_EMAILS_PER_HOUR}
+      - MAX_EMAILS_PER_DAY=${MAX_EMAILS_PER_DAY}
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - app-network
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    container_name: email-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - email-db-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"  # Change this port if needed
+    networks:
+      - app-network
+
+volumes:
+  email-db-data:
+
+networks:
+  app-network:
+    driver: bridge

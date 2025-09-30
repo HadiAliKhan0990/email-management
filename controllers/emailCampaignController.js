@@ -3,7 +3,7 @@ const { validationResult } = require('express-validator');
 const { HTTP_STATUS_CODE } = require('../utils/httpStatus');
 const nodemailer = require('nodemailer');
 
-// Create email campaign
+// Create email campaign (supports SINGLE recipient or GROUP)
 const createCampaign = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -11,34 +11,88 @@ const createCampaign = async (req, res) => {
   }
 
   try {
-    const { subject, content, email_group_id, scheduled_at } = req.body;
+    const { subject, content, email_group_id, recipient_email_address, recipient_email_id, scheduled_at } = req.body;
     const user_id = req.user.id;
 
-    // Verify group belongs to user
-    const group = await EmailGroup.findOne({ 
-      where: { id: email_group_id, user_id },
-      include: [{
-        model: Email,
-        as: 'emails',
-        through: { attributes: [] },
-        where: { status: 'ACTIVE' }
-      }]
-    });
+    // Determine send type based on what was provided
+    const send_type = (recipient_email_address || recipient_email_id) ? 'SINGLE' : 'GROUP';
 
-    if (!group) {
-      return res.status(HTTP_STATUS_CODE.NOT_FOUND).json({
-        message: 'Email group not found or no active emails'
+    let total_recipients = 0;
+    let resolvedRecipientEmailId = null;
+
+    if (send_type === 'GROUP') {
+      // ---- GROUP MODE ----
+      // Verify group belongs to user and has active emails
+      const group = await EmailGroup.findOne({ 
+        where: { id: email_group_id, user_id },
+        include: [{
+          model: Email,
+          as: 'emails',
+          through: { attributes: [] },
+          where: { status: 'ACTIVE' }
+        }]
       });
+
+      if (!group) {
+        return res.status(HTTP_STATUS_CODE.NOT_FOUND).json({
+          message: 'Email group not found or no active emails'
+        });
+      }
+
+      total_recipients = group.emails.length;
+    } else {
+      // ---- SINGLE MODE ----
+      let recipientEmail;
+
+      if (recipient_email_id) {
+        // Look up email by ID directly
+        recipientEmail = await Email.findOne({
+          where: { id: recipient_email_id, user_id }
+        });
+
+        if (!recipientEmail) {
+          return res.status(HTTP_STATUS_CODE.NOT_FOUND).json({
+            message: 'Recipient email not found'
+          });
+        }
+      } else {
+        // Look up email by address, or create it if it doesn't exist
+        recipientEmail = await Email.findOne({
+          where: { email_address: recipient_email_address.toLowerCase().trim(), user_id }
+        });
+
+        if (!recipientEmail) {
+          // Auto-create the email record for convenience
+          recipientEmail = await Email.create({
+            email_address: recipient_email_address.toLowerCase().trim(),
+            user_id,
+            source_type: 'MANUAL',
+            status: 'ACTIVE',
+            created_at: new Date(),
+          });
+        }
+      }
+
+      if (recipientEmail.status !== 'ACTIVE') {
+        return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+          message: 'Recipient email is not active (may be unsubscribed or inactive)'
+        });
+      }
+
+      resolvedRecipientEmailId = recipientEmail.id;
+      total_recipients = 1;
     }
 
     const campaign = await EmailCampaign.create({
       subject,
       content,
       user_id,
-      email_group_id,
+      send_type,
+      email_group_id: send_type === 'GROUP' ? email_group_id : null,
+      recipient_email_id: send_type === 'SINGLE' ? resolvedRecipientEmailId : null,
       status: scheduled_at ? 'SCHEDULED' : 'DRAFT',
       scheduled_at: scheduled_at || null,
-      total_recipients: group.emails.length,
+      total_recipients,
       created_at: new Date(),
     });
 
@@ -67,11 +121,20 @@ const getAllCampaigns = async (req, res) => {
 
     const campaigns = await EmailCampaign.findAndCountAll({
       where,
-      include: [{
-        model: EmailGroup,
-        as: 'group',
-        attributes: ['id', 'name']
-      }],
+      include: [
+        {
+          model: EmailGroup,
+          as: 'group',
+          attributes: ['id', 'name'],
+          required: false
+        },
+        {
+          model: Email,
+          as: 'recipientEmail',
+          attributes: ['id', 'email_address'],
+          required: false
+        }
+      ],
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
       offset: parseInt(offset)
@@ -107,7 +170,14 @@ const getCampaign = async (req, res) => {
         {
           model: EmailGroup,
           as: 'group',
-          attributes: ['id', 'name', 'total_emails']
+          attributes: ['id', 'name', 'total_emails'],
+          required: false
+        },
+        {
+          model: Email,
+          as: 'recipientEmail',
+          attributes: ['id', 'email_address'],
+          required: false
         },
         {
           model: EmailLog,
@@ -181,24 +251,34 @@ const updateCampaign = async (req, res) => {
   }
 };
 
-// Send campaign
+// Send campaign (supports both SINGLE and GROUP modes)
 const sendCampaign = async (req, res) => {
   try {
     const { id } = req.params;
     const user_id = req.user.id;
 
+    // Build includes based on send type — we fetch the campaign first to check
     const campaign = await EmailCampaign.findOne({
       where: { id, user_id },
-      include: [{
-        model: EmailGroup,
-        as: 'group',
-        include: [{
+      include: [
+        {
+          model: EmailGroup,
+          as: 'group',
+          required: false,
+          include: [{
+            model: Email,
+            as: 'emails',
+            through: { attributes: [] },
+            where: { status: 'ACTIVE' },
+            required: false
+          }]
+        },
+        {
           model: Email,
-          as: 'emails',
-          through: { attributes: [] },
-          where: { status: 'ACTIVE' }
-        }]
-      }]
+          as: 'recipientEmail',
+          required: false
+        }
+      ]
     });
 
     if (!campaign) {
@@ -213,6 +293,32 @@ const sendCampaign = async (req, res) => {
       });
     }
 
+    // Determine the list of recipients
+    let recipients = [];
+
+    if (campaign.send_type === 'SINGLE') {
+      // Single recipient mode
+      if (!campaign.recipientEmail) {
+        return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({ 
+          message: 'Single recipient email not found or has been deleted' 
+        });
+      }
+      if (campaign.recipientEmail.status !== 'ACTIVE') {
+        return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({ 
+          message: 'Recipient email is not active' 
+        });
+      }
+      recipients = [campaign.recipientEmail];
+    } else {
+      // Group mode
+      if (!campaign.group || !campaign.group.emails || campaign.group.emails.length === 0) {
+        return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({ 
+          message: 'Email group has no active recipients' 
+        });
+      }
+      recipients = campaign.group.emails;
+    }
+
     // Update campaign status to sending
     await campaign.update({ 
       status: 'SENDING',
@@ -220,7 +326,7 @@ const sendCampaign = async (req, res) => {
     });
 
     // Configure email transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
       secure: process.env.SMTP_SECURE === 'true',
@@ -233,8 +339,8 @@ const sendCampaign = async (req, res) => {
     let sentCount = 0;
     let failedCount = 0;
 
-    // Send emails to all recipients
-    for (const email of campaign.group.emails) {
+    // Send emails to all recipients (1 for single, many for group)
+    for (const email of recipients) {
       try {
         await transporter.sendMail({
           from: process.env.FROM_EMAIL,
@@ -279,9 +385,12 @@ const sendCampaign = async (req, res) => {
     });
 
     res.status(HTTP_STATUS_CODE.OK).json({
-      message: 'Campaign sent successfully',
+      message: campaign.send_type === 'SINGLE' 
+        ? 'Email sent successfully to single recipient' 
+        : 'Campaign sent successfully to group',
       campaign: {
         id: campaign.id,
+        send_type: campaign.send_type,
         sent_count: sentCount,
         failed_count: failedCount,
         total_recipients: campaign.total_recipients

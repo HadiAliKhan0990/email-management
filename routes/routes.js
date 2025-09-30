@@ -2,7 +2,8 @@ const emailGroupRoutes = require('./emailGroupRoutes');
 const emailRoutes = require('./emailRoutes');
 const emailCampaignRoutes = require('./emailCampaignRoutes');
 const express = require('express');
-const router = express.Router();
+const 
+  router = express.Router();
 
 // test routes to check if server is working
 router.get('/test', (req, res) => {

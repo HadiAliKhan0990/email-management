@@ -16,7 +16,7 @@ const addEmail = async (req, res) => {
 
   try {
     const { email_address } = req.body;
-    const user_id = req.user.id;
+    const user_id = 5;
 
     // Check if email already exists for this user
     const existingEmail = await Email.findOne({
@@ -42,8 +42,9 @@ const addEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding email:', error);
-    res.status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS_CODE.INTERNAL_SERVER || 500).json({
       message: 'Error adding email',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
