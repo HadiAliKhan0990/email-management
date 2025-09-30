@@ -1,46 +1,59 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Ticket = sequelize.define('Ticket', {
+const EmailCampaign = sequelize.define('EmailCampaign', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
   },
-  name: {
+  subject: {
     type: DataTypes.STRING(255),
     allowNull: false,
   },
-  company_name: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-  },
-  ticket_type: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-  },
-  total_tickets: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  total_available: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  ticket_value: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  expiry_date: {
-    type: DataTypes.DATE,
-    allowNull: false,
-  },
-  qr_code: {
+  content: {
     type: DataTypes.TEXT,
+    allowNull: false,
+  },
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  email_group_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'EmailGroup',
+      key: 'id'
+    }
+  },
+  status: {
+    type: DataTypes.ENUM('DRAFT', 'SCHEDULED', 'SENDING', 'SENT', 'FAILED'),
+    allowNull: false,
+    defaultValue: 'DRAFT',
+  },
+  scheduled_at: {
+    type: DataTypes.DATE,
     allowNull: true,
+  },
+  sent_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  total_recipients: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  sent_count: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  failed_count: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
   },
   created_at: {
     type: DataTypes.DATE,
@@ -50,8 +63,8 @@ const Ticket = sequelize.define('Ticket', {
     type: DataTypes.DATE,
   },
 }, {
-  tableName: 'Ticket',
+  tableName: 'EmailCampaign',
   timestamps: false,
 });
 
-module.exports = Ticket; 
+module.exports = EmailCampaign;

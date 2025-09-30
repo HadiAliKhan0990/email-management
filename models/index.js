@@ -16,19 +16,63 @@ if (config.use_env_variable) {
   sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
 
-fs.readdirSync(__dirname)
-  .filter((file) => {
-    return file.indexOf('.') !== 0 && file !== basename && file.slice(-3) === '.js' && file.indexOf('.test.js') === -1;
-  })
-  .forEach((file) => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;
-  });
+// Import email service models
+const EmailGroup = require('./emailGroup');
+const Email = require('./email');
+const EmailGroupMember = require('./emailGroupMember');
+const EmailCampaign = require('./emailCampaign');
+const EmailLog = require('./emailLog');
 
-Object.keys(db).forEach((modelName) => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
-  }
+// Add models to db object
+db.EmailGroup = EmailGroup;
+db.Email = Email;
+db.EmailGroupMember = EmailGroupMember;
+db.EmailCampaign = EmailCampaign;
+db.EmailLog = EmailLog;
+
+// Set up associations (no user relations, only internal email service relations)
+EmailGroup.belongsToMany(Email, { 
+  through: EmailGroupMember, 
+  foreignKey: 'email_group_id',
+  otherKey: 'email_id',
+  as: 'emails'
+});
+
+Email.belongsToMany(EmailGroup, { 
+  through: EmailGroupMember, 
+  foreignKey: 'email_id',
+  otherKey: 'email_group_id',
+  as: 'groups'
+});
+
+EmailGroup.hasMany(EmailCampaign, { 
+  foreignKey: 'email_group_id',
+  as: 'campaigns'
+});
+
+EmailCampaign.belongsTo(EmailGroup, { 
+  foreignKey: 'email_group_id',
+  as: 'group'
+});
+
+EmailCampaign.hasMany(EmailLog, { 
+  foreignKey: 'campaign_id',
+  as: 'logs'
+});
+
+Email.hasMany(EmailLog, { 
+  foreignKey: 'email_id',
+  as: 'logs'
+});
+
+EmailLog.belongsTo(EmailCampaign, { 
+  foreignKey: 'campaign_id',
+  as: 'campaign'
+});
+
+EmailLog.belongsTo(Email, { 
+  foreignKey: 'email_id',
+  as: 'email'
 });
 
 db.sequelize = sequelize;

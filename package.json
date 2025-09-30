@@ -1,7 +1,7 @@
 {
-  "name": "tickets",
+  "name": "email-service",
   "version": "1.0.0",
-  "description": "Tickets service application",
+  "description": "Email service application for managing email groups and sending emails",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -33,7 +33,13 @@
     "qrcode": "^1.5.4",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.2",
-    "stripe": "^18.4.0"
+    "stripe": "^18.4.0",
+    "multer": "^1.4.5-lts.1",
+    "csv-parser": "^3.0.0",
+    "xlsx": "^0.18.5",
+    "nodemailer": "^6.9.7",
+    "uuid": "^9.0.1",
+    "axios": "^1.6.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
