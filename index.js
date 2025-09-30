@@ -1,8 +1,34 @@
 const express = require('express');
+const dotenv = require('dotenv');
+
+// Load environment variables first
+dotenv.config();
+
+// Validate required environment variables
+// JWT secret can be AUTH_KEY, JWT_SECRET, or JWT_SECRET_KEY
+const jwtSecret = process.env.AUTH_KEY || process.env.JWT_SECRET || process.env.JWT_SECRET_KEY;
+const requiredEnvVars = ['DB_HOST', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('ERROR: Missing required environment variables:', missingVars.join(', '));
+  console.error('Please check your .env file or environment configuration.');
+  process.exit(1);
+}
+
+// Check for JWT secret (at least one must be present)
+if (!jwtSecret) {
+  console.error('ERROR: JWT secret not found!');
+  console.error('Please set one of: AUTH_KEY, JWT_SECRET, or JWT_SECRET_KEY in your .env file');
+  process.exit(1);
+}
+
+// Log which JWT secret is being used (without exposing the actual key)
+const keyName = process.env.AUTH_KEY ? 'AUTH_KEY' : (process.env.JWT_SECRET ? 'JWT_SECRET' : 'JWT_SECRET_KEY');
+console.log(`JWT secret configured: ${keyName} (length: ${jwtSecret.length})`);
+
 const app = express();
 require('./connection/db');
-const dotenv = require('dotenv');
-dotenv.config();
 
 // Middleware
 app.use(express.json());

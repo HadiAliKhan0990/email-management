@@ -16,7 +16,7 @@ const addEmail = async (req, res) => {
 
   try {
     const { email_address } = req.body;
-    const user_id = req.user.id;
+    const user_id = 5;
 
     // Check if email already exists for this user
     const existingEmail = await Email.findOne({
